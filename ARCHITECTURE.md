@@ -134,3 +134,24 @@ graph TB
 ---
 
 *Last Updated: 2026-05-14*
+graph TD
+    A[SystemInit 開機初始化] --> B[ControllerManager 控制器]
+    
+    B --> C[EyeTrackingManager 動眼控制]
+    B --> D[VoiceCommandManager 聲智導行]
+    B --> E[AudioManager 聽覺模組]
+    B --> F[VisualManager 視覺模組]
+    B --> G[HapticManager 觸覺模組]
+    B --> H[SmellManager 嗅覺模組]
+    B --> I[TasteManager 味覺模組]
+    B --> J[MotionTrackingManager 體感回應]
+
+    C --> K[注視選擇 / 眨眼確認]
+    D --> L[語音指令 / 多語言支援]
+    E --> M[語音合成 / LipSync]
+    F --> N[VR 場景渲染]
+    G --> O[震動回饋]
+    H --> P[釋放氣味]
+    I --> Q[模擬味覺]
+    J --> R[姿勢偵測 / AI 建議]
+
