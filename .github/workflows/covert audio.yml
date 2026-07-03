@@ -1,0 +1,33 @@
+  - name: Install ffmpeg
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y ffmpeg
+
+  - name: Create audio directory
+    run: mkdir -p audio
+
+  - name: Convert to mp3
+    id: convert
+    run: |
+      SRC="${{ github.event.inputs.source_file }}"
+      BASE="$(basename "${SRC}" .mp4)"
+      OUT="audio/${BASE}.mp3"
+      ffmpeg -y -i "${SRC}" -vn -acodec libmp3lame -b:a "${{ github.event.inputs.bitrate }}" -ar "${{ github.event.inputs.sample_rate }}" -ac "${{ github.event.inputs.channels }}" "${OUT}"
+      echo "::set-output name=outpath::${OUT}"
+
+  - name: Show output file size
+    run: |
+      OUT="${{ steps.convert.outputs.outpath }}"
+      if [ -f "${OUT}" ]; then
+        echo "Created ${OUT} — size: $(wc -c < "${OUT}") bytes"
+      else
+        echo "Error: output file not found: ${OUT}"
+        exit 1
+      fi
+
+  - name: Commit and push changes
+    uses: stefanzweifel/git-auto-commit-action@v4
+    with:
+      commit_message: Add converted audio from ${{ github.event.inputs.source_file }}
+      branch: ${{ github.event.inputs.target_branch }}
+      file_pattern: audio/**
