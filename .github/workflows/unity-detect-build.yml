@@ -1,0 +1,57 @@
+name: Unity: detect and conditional build
+
+on:
+  push:
+    branches:
+      - ci/add-unity-detection
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  unity-detect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Debug - list repo root
+        run: |
+          echo "=== ls -la (repo root) ==="
+          ls -la
+          echo "=== find potential ProjectVersion.txt (up to depth 6) ==="
+          find . -maxdepth 6 -type f -name 'ProjectVersion.txt' -print || true
+
+      - name: Find ProjectVersion.txt and set outputs
+        id: find_unity
+        run: |
+          pv=$(find . -type f -path '*/ProjectSettings/ProjectVersion.txt' -print -quit || true)
+          if [ -n "$pv" ]; then
+            project_root="$(dirname "$(dirname "$pv")")"
+            echo "found=true" >> $GITHUB_OUTPUT
+            echo "project_version_path=$pv" >> $GITHUB_OUTPUT
+            echo "project_root=$project_root" >> $GITHUB_OUTPUT
+            echo "Found ProjectVersion.txt at: $pv"
+            echo "Inferred project_root: $project_root"
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+            echo "project_version_path=" >> $GITHUB_OUTPUT
+            echo "project_root=" >> $GITHUB_OUTPUT
+            echo "No ProjectVersion.txt found."
+          fi
+
+      - name: Show detection result
+        run: |
+          echo "steps.find_unity.outputs.found=${{ steps.find_unity.outputs.found }}"
+          echo "steps.find_unity.outputs.project_version_path=${{ steps.find_unity.outputs.project_version_path }}"
+          echo "steps.find_unity.outputs.project_root=${{ steps.find_unity.outputs.project_root }}"
+
+      - name: Run Unity build (game-ci/unity-builder) — conditional
+        if: steps.find_unity.outputs.found == 'true'
+        uses: game-ci/unity-builder@v2
+        with:
+          projectPath: '${{ steps.find_unity.outputs.project_root }}'
+          unityVersion: '2021.3.0f1'
+          targetPlatform: 'StandaloneWindows64'
+          buildName: 'CI_Build'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
